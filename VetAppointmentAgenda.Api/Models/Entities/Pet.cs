@@ -9,5 +9,7 @@ namespace VetAppointmentAgenda.Api.Models.Entities
         public DateTime BirthDate { get; set; }
         public int OwnerId { get; set; }
         public bool IsActive { get; set; } = true;
+
+        public Owner? Owner { get; set; }
     }
 }
