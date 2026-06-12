@@ -1,5 +1,8 @@
-using VetAppointmentAgenda.Api.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using VetAppointmentAgenda.Api.Data;
+using VetAppointmentAgenda.Api.Models.DTOs;
+using VetAppointmentAgenda.Api.Models.Entities;
 
 namespace VetAppointmentAgenda.Api.Controllers
 {
@@ -7,65 +10,99 @@ namespace VetAppointmentAgenda.Api.Controllers
     [Route("api/owners")]
     public class OwnersController : ControllerBase
     {
-        private static readonly List<Owner> _owners = new List<Owner>
+        private readonly ApplicationDbContext _context;
+
+        public OwnersController(ApplicationDbContext context)
         {
-            new Owner { Id = 1, Name = "Maria Garcia", Phone = "809-555-0001", Email = "maria@email.com", IsActive = true },
-            new Owner { Id = 2, Name = "Juan Perez", Phone = "809-555-0002", Email = "juan@email.com", IsActive = true },
-            new Owner { Id = 3, Name = "Ana Lopez", Phone = "809-555-0003", Email = "ana@email.com", IsActive = true }
-        };
+            _context = context;
+        }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Owner>> GetAll()
+        public ActionResult<IEnumerable<OwnerDto>> GetAll()
         {
-            return Ok(_owners);
+            var owners = _context.Owners
+                .Select(o => new OwnerDto
+                {
+                    Id = o.Id,
+                    Name = o.Name,
+                    Phone = o.Phone,
+                    Email = o.Email,
+                    IsActive = o.IsActive
+                }).ToList();
+            return Ok(owners);
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Owner> GetById(int id)
+        public ActionResult<OwnerDto> GetById(int id)
         {
-            var owner = _owners.FirstOrDefault(o => o.Id == id);
-            if (owner == null)
-                return NotFound();
-            return Ok(owner);
+            var owner = _context.Owners.Find(id);
+            if (owner == null) return NotFound();
+
+            var dto = new OwnerDto
+            {
+                Id = owner.Id,
+                Name = owner.Name,
+                Phone = owner.Phone,
+                Email = owner.Email,
+                IsActive = owner.IsActive
+            };
+            return Ok(dto);
         }
 
         [HttpPost]
-        public ActionResult<Owner> Create(Owner owner)
+        public ActionResult<OwnerDto> Create([FromBody] CreateOwnerDto dto)
         {
-            if (string.IsNullOrWhiteSpace(owner.Name))
-                return BadRequest("El nombre del dueÃ±o es requerido.");
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                return BadRequest("El nombre del dueño es requerido.");
 
-            int newId = _owners.Any() ? _owners.Max(o => o.Id) + 1 : 1;
-            owner.Id = newId;
-            owner.IsActive = true;
-            _owners.Add(owner);
+            var owner = new Owner
+            {
+                Name = dto.Name,
+                Phone = dto.Phone,
+                Email = dto.Email,
+                IsActive = true
+            };
 
-            return CreatedAtAction(nameof(GetById), new { id = owner.Id }, owner);
+            _context.Owners.Add(owner);
+            _context.SaveChanges();
+
+            var result = new OwnerDto
+            {
+                Id = owner.Id,
+                Name = owner.Name,
+                Phone = owner.Phone,
+                Email = owner.Email,
+                IsActive = owner.IsActive
+            };
+            return CreatedAtAction(nameof(GetById), new { id = owner.Id }, result);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, Owner owner)
+        public IActionResult Update(int id, [FromBody] UpdateOwnerDto dto)
         {
-            var existing = _owners.FirstOrDefault(o => o.Id == id);
-            if (existing == null)
-                return NotFound();
+            var owner = _context.Owners.Find(id);
+            if (owner == null) return NotFound();
 
-            existing.Name = owner.Name;
-            existing.Phone = owner.Phone;
-            existing.Email = owner.Email;
-            existing.IsActive = owner.IsActive;
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                return BadRequest("El nombre del dueño es requerido.");
 
+            owner.Name = dto.Name;
+            owner.Phone = dto.Phone;
+            owner.Email = dto.Email;
+            owner.IsActive = dto.IsActive;
+
+            _context.SaveChanges();
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            var existing = _owners.FirstOrDefault(o => o.Id == id);
-            if (existing == null)
-                return NotFound();
+            var owner = _context.Owners.Find(id);
+            if (owner == null) return NotFound();
 
-            _owners.Remove(existing);
+            _context.Owners.Remove(owner);
+            _context.SaveChanges();
             return NoContent();
         }
     }
