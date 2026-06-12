@@ -1,5 +1,7 @@
-using VetAppointmentAgenda.Api.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
+using VetAppointmentAgenda.Api.Data;
+using VetAppointmentAgenda.Api.Models.DTOs;
+using VetAppointmentAgenda.Api.Models.Entities;
 
 namespace VetAppointmentAgenda.Api.Controllers
 {
@@ -7,70 +9,117 @@ namespace VetAppointmentAgenda.Api.Controllers
     [Route("api/pets")]
     public class PetsController : ControllerBase
     {
-        private static readonly List<Pet> _pets = new List<Pet>
+        private readonly ApplicationDbContext _context;
+
+        public PetsController(ApplicationDbContext context)
         {
-            new Pet { Id = 1, Name = "Luna", Species = "Perro", Breed = "Labrador", BirthDate = new DateTime(2020, 3, 15), OwnerId = 1, IsActive = true },
-            new Pet { Id = 2, Name = "Michi", Species = "Gato", Breed = "Siames", BirthDate = new DateTime(2021, 6, 10), OwnerId = 2, IsActive = true },
-            new Pet { Id = 3, Name = "Rocky", Species = "Perro", Breed = "Bulldog", BirthDate = new DateTime(2019, 11, 20), OwnerId = 1, IsActive = true }
-        };
+            _context = context;
+        }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Pet>> GetAll()
+        public ActionResult<IEnumerable<PetDto>> GetAll()
         {
-            return Ok(_pets);
+            var pets = _context.Pets
+                .Select(p => new PetDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Species = p.Species,
+                    Breed = p.Breed,
+                    BirthDate = p.BirthDate,
+                    OwnerId = p.OwnerId,
+                    IsActive = p.IsActive
+                }).ToList();
+            return Ok(pets);
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Pet> GetById(int id)
+        public ActionResult<PetDto> GetById(int id)
         {
-            var pet = _pets.FirstOrDefault(p => p.Id == id);
-            if (pet == null)
-                return NotFound();
-            return Ok(pet);
+            var pet = _context.Pets.Find(id);
+            if (pet == null) return NotFound();
+
+            var dto = new PetDto
+            {
+                Id = pet.Id,
+                Name = pet.Name,
+                Species = pet.Species,
+                Breed = pet.Breed,
+                BirthDate = pet.BirthDate,
+                OwnerId = pet.OwnerId,
+                IsActive = pet.IsActive
+            };
+            return Ok(dto);
         }
 
         [HttpPost]
-        public ActionResult<Pet> Create(Pet pet)
+        public ActionResult<PetDto> Create([FromBody] CreatePetDto dto)
         {
-            if (string.IsNullOrWhiteSpace(pet.Name))
+            if (string.IsNullOrWhiteSpace(dto.Name))
                 return BadRequest("El nombre de la mascota es requerido.");
 
-            if (pet.OwnerId <= 0)
-                return BadRequest("El OwnerId es requerido.");
+            var ownerExists = _context.Owners.Any(o => o.Id == dto.OwnerId);
+            if (!ownerExists)
+                return BadRequest($"No existe un dueño con Id = {dto.OwnerId}.");
 
-            int newId = _pets.Any() ? _pets.Max(p => p.Id) + 1 : 1;
-            pet.Id = newId;
-            pet.IsActive = true;
-            _pets.Add(pet);
+            var pet = new Pet
+            {
+                Name = dto.Name,
+                Species = dto.Species,
+                Breed = dto.Breed,
+                BirthDate = dto.BirthDate,
+                OwnerId = dto.OwnerId,
+                IsActive = true
+            };
 
-            return CreatedAtAction(nameof(GetById), new { id = pet.Id }, pet);
+            _context.Pets.Add(pet);
+            _context.SaveChanges();
+
+            var result = new PetDto
+            {
+                Id = pet.Id,
+                Name = pet.Name,
+                Species = pet.Species,
+                Breed = pet.Breed,
+                BirthDate = pet.BirthDate,
+                OwnerId = pet.OwnerId,
+                IsActive = pet.IsActive
+            };
+            return CreatedAtAction(nameof(GetById), new { id = pet.Id }, result);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, Pet pet)
+        public IActionResult Update(int id, [FromBody] UpdatePetDto dto)
         {
-            var existing = _pets.FirstOrDefault(p => p.Id == id);
-            if (existing == null)
-                return NotFound();
+            var pet = _context.Pets.Find(id);
+            if (pet == null) return NotFound();
 
-            existing.Name = pet.Name;
-            existing.Species = pet.Species;
-            existing.Breed = pet.Breed;
-            existing.BirthDate = pet.BirthDate;
-            existing.OwnerId = pet.OwnerId;
-            existing.IsActive = pet.IsActive;
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                return BadRequest("El nombre de la mascota es requerido.");
 
+            var ownerExists = _context.Owners.Any(o => o.Id == dto.OwnerId);
+            if (!ownerExists)
+                return BadRequest($"No existe un dueño con Id = {dto.OwnerId}.");
+
+            pet.Name = dto.Name;
+            pet.Species = dto.Species;
+            pet.Breed = dto.Breed;
+            pet.BirthDate = dto.BirthDate;
+            pet.OwnerId = dto.OwnerId;
+            pet.IsActive = dto.IsActive;
+
+            _context.SaveChanges();
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            var existing = _pets.FirstOrDefault(p => p.Id == id);
-            if (existing == null)
-                return NotFound();
+            var pet = _context.Pets.Find(id);
+            if (pet == null) return NotFound();
 
-            _pets.Remove(existing);
+            _context.Pets.Remove(pet);
+            _context.SaveChanges();
             return NoContent();
         }
     }
