@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using VetAppointmentAgenda.Api.Data;
-using VetAppointmentAgenda.Api.Models.DTOs;
-using VetAppointmentAgenda.Api.Models.Entities;
+using VetAppointmentAgenda.Api.Data.Contexto;
+using VetAppointmentAgenda.Api.Data.Modelos;
+using VetAppointmentAgenda.Api.Data.Entidades;
 
 namespace VetAppointmentAgenda.Api.Controllers
 {

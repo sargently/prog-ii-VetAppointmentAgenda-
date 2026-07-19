@@ -1,4 +1,4 @@
-namespace VetAppointmentAgenda.Api.Models.Entities
+namespace VetAppointmentAgenda.Api.Data.Entidades
 {
     public class Pet
     {
@@ -7,9 +7,12 @@ namespace VetAppointmentAgenda.Api.Models.Entities
         public string Species { get; set; } = string.Empty;
         public string Breed { get; set; } = string.Empty;
         public DateTime BirthDate { get; set; }
-        public int OwnerId { get; set; }
         public bool IsActive { get; set; } = true;
 
+        public int OwnerId { get; set; }
         public Owner? Owner { get; set; }
+
+        public int? VeterinarianId { get; set; }
+        public Veterinarian? Veterinarian { get; set; }
     }
 }

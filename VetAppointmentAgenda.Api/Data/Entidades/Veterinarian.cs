@@ -1,4 +1,4 @@
-namespace VetAppointmentAgenda.Api.Models.Entities
+namespace VetAppointmentAgenda.Api.Data.Entidades
 {
     public class Veterinarian
     {
@@ -7,5 +7,7 @@ namespace VetAppointmentAgenda.Api.Models.Entities
         public string Specialty { get; set; } = string.Empty;
         public string LicenseNumber { get; set; } = string.Empty;
         public bool IsActive { get; set; } = true;
+
+        public List<Pet> Pets { get; set; } = new List<Pet>();
     }
 }

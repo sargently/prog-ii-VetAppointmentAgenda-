@@ -1,4 +1,4 @@
-namespace VetAppointmentAgenda.Api.Models.DTOs
+namespace VetAppointmentAgenda.Api.Data.Modelos
 {
     public class OwnerDto
     {

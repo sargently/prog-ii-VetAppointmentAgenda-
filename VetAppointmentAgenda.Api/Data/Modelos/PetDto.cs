@@ -1,4 +1,4 @@
-namespace VetAppointmentAgenda.Api.Models.DTOs
+namespace VetAppointmentAgenda.Api.Data.Modelos
 {
     public class PetDto
     {
@@ -8,6 +8,7 @@ namespace VetAppointmentAgenda.Api.Models.DTOs
         public string Breed { get; set; } = string.Empty;
         public DateTime BirthDate { get; set; }
         public int OwnerId { get; set; }
+        public int? VeterinarianId { get; set; }
         public bool IsActive { get; set; }
     }
 
@@ -18,6 +19,7 @@ namespace VetAppointmentAgenda.Api.Models.DTOs
         public string Breed { get; set; } = string.Empty;
         public DateTime BirthDate { get; set; }
         public int OwnerId { get; set; }
+        public int? VeterinarianId { get; set; }
     }
 
     public class UpdatePetDto
@@ -27,6 +29,7 @@ namespace VetAppointmentAgenda.Api.Models.DTOs
         public string Breed { get; set; } = string.Empty;
         public DateTime BirthDate { get; set; }
         public int OwnerId { get; set; }
+        public int? VeterinarianId { get; set; }
         public bool IsActive { get; set; }
     }
 }

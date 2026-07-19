@@ -1,5 +1,7 @@
-using VetAppointmentAgenda.Api.Models.Entities;
 using Microsoft.AspNetCore.Mvc;
+using VetAppointmentAgenda.Api.Data.Entidades;
+using VetAppointmentAgenda.Api.Data.Modelos;
+using VetAppointmentAgenda.Api.Data.Repositorio;
 
 namespace VetAppointmentAgenda.Api.Controllers
 {
@@ -7,68 +9,98 @@ namespace VetAppointmentAgenda.Api.Controllers
     [Route("api/veterinarians")]
     public class VeterinariansController : ControllerBase
     {
-        private static readonly List<Veterinarian> _veterinarians = new List<Veterinarian>
+        private readonly IVeterinarianRepository _repository;
+
+        public VeterinariansController(IVeterinarianRepository repository)
         {
-            new Veterinarian { Id = 1, Name = "Dr. Carlos Mendez", Specialty = "Cirugia", LicenseNumber = "VET-001", IsActive = true },
-            new Veterinarian { Id = 2, Name = "Dra. Sofia Reyes", Specialty = "Dermatologia", LicenseNumber = "VET-002", IsActive = true },
-            new Veterinarian { Id = 3, Name = "Dr. Luis Torres", Specialty = "Cardiologia", LicenseNumber = "VET-003", IsActive = true }
-        };
+            _repository = repository;
+        }
 
         [HttpGet]
-        public ActionResult<IEnumerable<Veterinarian>> GetAll()
+        public ActionResult<IEnumerable<VeterinarianDto>> GetAll()
         {
-            return Ok(_veterinarians);
+            var vets = _repository.GetAll().Select(v => new VeterinarianDto
+            {
+                Id = v.Id,
+                Name = v.Name,
+                Specialty = v.Specialty,
+                LicenseNumber = v.LicenseNumber,
+                IsActive = v.IsActive
+            });
+            return Ok(vets);
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Veterinarian> GetById(int id)
+        public ActionResult<VeterinarianDto> GetById(int id)
         {
-            var vet = _veterinarians.FirstOrDefault(v => v.Id == id);
-            if (vet == null)
-                return NotFound();
-            return Ok(vet);
+            var vet = _repository.GetById(id);
+            if (vet == null) return NotFound();
+
+            return Ok(new VeterinarianDto
+            {
+                Id = vet.Id,
+                Name = vet.Name,
+                Specialty = vet.Specialty,
+                LicenseNumber = vet.LicenseNumber,
+                IsActive = vet.IsActive
+            });
         }
 
         [HttpPost]
-        public ActionResult<Veterinarian> Create(Veterinarian vet)
+        public ActionResult<VeterinarianDto> Create([FromBody] CreateVeterinarianDto dto)
         {
-            if (string.IsNullOrWhiteSpace(vet.Name))
+            if (string.IsNullOrWhiteSpace(dto.Name))
                 return BadRequest("El nombre del veterinario es requerido.");
 
-            if (string.IsNullOrWhiteSpace(vet.LicenseNumber))
+            if (string.IsNullOrWhiteSpace(dto.LicenseNumber))
                 return BadRequest("El numero de licencia es requerido.");
 
-            int newId = _veterinarians.Any() ? _veterinarians.Max(v => v.Id) + 1 : 1;
-            vet.Id = newId;
-            vet.IsActive = true;
-            _veterinarians.Add(vet);
+            var vet = new Veterinarian
+            {
+                Name = dto.Name,
+                Specialty = dto.Specialty,
+                LicenseNumber = dto.LicenseNumber,
+                IsActive = true
+            };
 
-            return CreatedAtAction(nameof(GetById), new { id = vet.Id }, vet);
+            _repository.Add(vet);
+            _repository.SaveChanges();
+
+            var result = new VeterinarianDto
+            {
+                Id = vet.Id,
+                Name = vet.Name,
+                Specialty = vet.Specialty,
+                LicenseNumber = vet.LicenseNumber,
+                IsActive = vet.IsActive
+            };
+            return CreatedAtAction(nameof(GetById), new { id = vet.Id }, result);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, Veterinarian vet)
+        public IActionResult Update(int id, [FromBody] UpdateVeterinarianDto dto)
         {
-            var existing = _veterinarians.FirstOrDefault(v => v.Id == id);
-            if (existing == null)
-                return NotFound();
+            var vet = _repository.GetById(id);
+            if (vet == null) return NotFound();
 
-            existing.Name = vet.Name;
-            existing.Specialty = vet.Specialty;
-            existing.LicenseNumber = vet.LicenseNumber;
-            existing.IsActive = vet.IsActive;
+            vet.Name = dto.Name;
+            vet.Specialty = dto.Specialty;
+            vet.LicenseNumber = dto.LicenseNumber;
+            vet.IsActive = dto.IsActive;
 
+            _repository.Update(vet);
+            _repository.SaveChanges();
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            var existing = _veterinarians.FirstOrDefault(v => v.Id == id);
-            if (existing == null)
-                return NotFound();
+            var vet = _repository.GetById(id);
+            if (vet == null) return NotFound();
 
-            _veterinarians.Remove(existing);
+            _repository.Delete(vet);
+            _repository.SaveChanges();
             return NoContent();
         }
     }
