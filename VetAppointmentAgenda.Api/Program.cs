@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using VetAppointmentAgenda.Api.Contract;
 using VetAppointmentAgenda.Api.Data.Contexto;
 using VetAppointmentAgenda.Api.Data.Repositorio;
+using VetAppointmentAgenda.Api.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +16,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 builder.Services.AddScoped<IVeterinarianRepository, VeterinarianRepository>();
+builder.Services.AddScoped<IVeterinarianService, VeterinarianService>();
 
 var app = builder.Build();
 

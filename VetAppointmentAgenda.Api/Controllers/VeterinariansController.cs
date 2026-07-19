@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using VetAppointmentAgenda.Api.Data.Entidades;
-using VetAppointmentAgenda.Api.Data.Modelos;
-using VetAppointmentAgenda.Api.Data.Repositorio;
+using VetAppointmentAgenda.Api.Contract;
+using VetAppointmentAgenda.Api.Dtos.Veterinarian;
 
 namespace VetAppointmentAgenda.Api.Controllers
 {
@@ -9,99 +8,71 @@ namespace VetAppointmentAgenda.Api.Controllers
     [Route("api/veterinarians")]
     public class VeterinariansController : ControllerBase
     {
-        private readonly IVeterinarianRepository _repository;
+        private readonly IVeterinarianService _service;
 
-        public VeterinariansController(IVeterinarianRepository repository)
+        public VeterinariansController(IVeterinarianService service)
         {
-            _repository = repository;
+            _service = service;
         }
 
         [HttpGet]
-        public ActionResult<IEnumerable<VeterinarianDto>> GetAll()
+        public ActionResult<IEnumerable<VeterinarianServiceDto>> GetAll()
         {
-            var vets = _repository.GetAll().Select(v => new VeterinarianDto
-            {
-                Id = v.Id,
-                Name = v.Name,
-                Specialty = v.Specialty,
-                LicenseNumber = v.LicenseNumber,
-                IsActive = v.IsActive
-            });
-            return Ok(vets);
+            return Ok(_service.GetAll());
         }
 
         [HttpGet("{id}")]
-        public ActionResult<VeterinarianDto> GetById(int id)
+        public ActionResult<VeterinarianServiceDto> GetById(int id)
         {
-            var vet = _repository.GetById(id);
+            var vet = _service.GetById(id);
             if (vet == null) return NotFound();
-
-            return Ok(new VeterinarianDto
-            {
-                Id = vet.Id,
-                Name = vet.Name,
-                Specialty = vet.Specialty,
-                LicenseNumber = vet.LicenseNumber,
-                IsActive = vet.IsActive
-            });
+            return Ok(vet);
         }
 
         [HttpPost]
-        public ActionResult<VeterinarianDto> Create([FromBody] CreateVeterinarianDto dto)
+        public ActionResult<VeterinarianServiceDto> Create([FromBody] CreateVeterinarianServiceDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.Name))
-                return BadRequest("El nombre del veterinario es requerido.");
-
-            if (string.IsNullOrWhiteSpace(dto.LicenseNumber))
-                return BadRequest("El numero de licencia es requerido.");
-
-            var vet = new Veterinarian
+            try
             {
-                Name = dto.Name,
-                Specialty = dto.Specialty,
-                LicenseNumber = dto.LicenseNumber,
-                IsActive = true
-            };
-
-            _repository.Add(vet);
-            _repository.SaveChanges();
-
-            var result = new VeterinarianDto
+                var result = _service.Create(dto);
+                return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            }
+            catch (ArgumentException ex)
             {
-                Id = vet.Id,
-                Name = vet.Name,
-                Specialty = vet.Specialty,
-                LicenseNumber = vet.LicenseNumber,
-                IsActive = vet.IsActive
-            };
-            return CreatedAtAction(nameof(GetById), new { id = vet.Id }, result);
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, [FromBody] UpdateVeterinarianDto dto)
+        public IActionResult Update(int id, [FromBody] UpdateVeterinarianServiceDto dto)
         {
-            var vet = _repository.GetById(id);
-            if (vet == null) return NotFound();
-
-            vet.Name = dto.Name;
-            vet.Specialty = dto.Specialty;
-            vet.LicenseNumber = dto.LicenseNumber;
-            vet.IsActive = dto.IsActive;
-
-            _repository.Update(vet);
-            _repository.SaveChanges();
-            return NoContent();
+            try
+            {
+                _service.Update(id, dto);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            var vet = _repository.GetById(id);
-            if (vet == null) return NotFound();
-
-            _repository.Delete(vet);
-            _repository.SaveChanges();
-            return NoContent();
+            try
+            {
+                _service.Delete(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
         }
     }
 }
